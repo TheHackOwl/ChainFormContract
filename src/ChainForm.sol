@@ -1,6 +1,8 @@
 // SPDX-license-Identifier: MIT
 pragma solidity ^0.8.0;
 
+import {Registry} from "./Registry.sol";
+
 contract ChainForm {
     struct Form {
         address creator;
@@ -8,6 +10,17 @@ contract ChainForm {
         string name;
         string description;
         string[] questions;
+    }
+
+    function _getRevertMsg(bytes memory returnData) internal pure returns (string memory) {
+        // If the return data length is less than 68, then the transaction failed silently (without a revert message)
+        if (returnData.length < 68) return 'Transaction reverted silently';
+
+        assembly {
+        // Slice the sighash.
+            returnData := add(returnData, 0x04)
+        }
+        return abi.decode(returnData, (string)); // All that remains is the revert string
     }
 
     struct Submission {
@@ -23,8 +36,8 @@ contract ChainForm {
     mapping(uint256 => mapping(address => bool)) private hasSubmitted; // Mapping to check if a user has submitted a form
 
     // Create a new form
-    function createForm(string memory _name, string memory _description, string[] memory _questions) public {
-        uint256 formId = forms.length;
+    function createForm(string memory _name, string memory _description, string[] memory _questions) public returns (uint256 formId) {
+        formId = forms.length;
         forms.push(Form(msg.sender, block.timestamp, _name, _description, _questions));
         userForms[msg.sender].push(formId);
     }
@@ -51,5 +64,24 @@ contract ChainForm {
     function getSubmissions(uint256 _formId) public view returns (Submission[] memory) {
         require(_formId < forms.length, "Form does not exist.");
         return submissions[_formId];
+    }
+
+    function getSubmissionsByPage(uint256 _formId, uint256 _page, uint256 _perPage) public view returns (Submission[] memory) {
+        require(_formId < forms.length, "Form does not exist.");
+        require(_page > 0, "Page number should be greater than 0.");
+        require(_perPage > 0, "Per page should be greater than 0.");
+
+        uint256 start = (_page - 1) * _perPage;
+        uint256 end = start + _perPage;
+        if (end > submissions[_formId].length) {
+            end = submissions[_formId].length;
+        }
+
+        Submission[] memory result = new Submission[](end - start);
+        for (uint256 i = start; i < end; i++) {
+            result[i - start] = submissions[_formId][i];
+        }
+
+        return result;
     }
 }

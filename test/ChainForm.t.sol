@@ -3,6 +3,7 @@ pragma solidity ^0.8.0;
 
 import {Test} from "forge-std/Test.sol";
 import {ChainForm} from "../src/ChainForm.sol";
+import {console} from "forge-std/Console.sol";
 
 contract ChainFormTest is Test {
     ChainForm private chainForm;
