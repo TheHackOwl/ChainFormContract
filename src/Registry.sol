@@ -5,15 +5,19 @@ import {Owned} from "./Owned.sol";
 
 contract Registry is Owned {
     address private current;
-    address[] private previous;
 
     constructor() Owned(){
 
     }
 
+    event Updated(
+        address indexed current
+    );
+
     function update(address _contract) public onlyOwner {
         current = _contract;
-        previous.push(current);
+        
+        emit Updated(current);
     }
 
     function get() public view returns (address) {

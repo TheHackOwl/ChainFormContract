@@ -1,31 +1,18 @@
 // SPDX-license-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import {Registry} from "./Registry.sol";
+import {Form, Submission, FormSettings, IRewardLogic} from "./FormDefinition.sol";
 
 contract ChainForm {
-    struct Form {
-        address creator;
-        uint256 createdAt;
-        string name;
-        string description;
-        string[] questions;
-    }
-
-    struct Submission {
-        string dataHash;
-        string cid;
-        address submitter;
-        uint256 submittedAt;
-    }
-
     Form[] private forms;
     mapping(uint256 => Submission[]) private submissions; // Mapping from form ID to submissions
     mapping(address => uint256[]) private userForms; // Mapping from user address to list of form IDs
     mapping(uint256 => mapping(address => bool)) private hasSubmitted; // Mapping to check if a user has submitted a form
+    mapping(uint256 => IRewardLogic) private rewardLogics;
+
 
     // @title Create a new form
-    function createForm(string memory _name, string memory _description, string[] memory _questions) public returns (uint256 formId) {
+    function createForm(string memory _name, string memory _description, string[] memory _questions, FormSettings memory _formSettings) public returns (uint256 formId) {
         formId = forms.length;
         forms.push(Form(msg.sender, block.timestamp, _name, _description, _questions));
         userForms[msg.sender].push(formId);
@@ -49,7 +36,7 @@ contract ChainForm {
     // @param _formId Form ID
     // @param _dataHash IPFS data hash
     // @param _cid IPFS CID
-    function submitForm(uint256 _formId, string memory _dataHash, string memory _cid) public returns(uint256 submissionId) {
+    function submitForm(uint256 _formId, string memory _dataHash, string memory _cid) public returns (uint256 submissionId) {
         require(_formId < forms.length, "Form does not exist.");
         require(!hasSubmitted[_formId][msg.sender], "You have already submitted this form.");
         submissionId = submissions[_formId].length;
