@@ -22,10 +22,31 @@ struct Form {
 }
 
 interface IRewardLogic {
+    // @title Set reward for form
+    // @param formId Form ID
+    function addReward(uint256 formId) payable external;
+
+    // @title Reward user
+    // @param _user User address
+    // @param formId Form ID
     function reward(address _user, uint256 formId) external;
 
-    function claim(address _user, IERC20 token ) external;
-    function getRewards(address _user) external view returns (uint256);
+    // @title Claim reward
+    // @param _user User address
+    // @param token Token address
+    function claim(address _user, IERC20 token) external;
+
+    // @title Get rewards
+    // @param _user User address
+    // @param token Token address
+    function getRewards(address _user, IERC20 token) external view returns (uint256);
+
+    // @title Get award trigger
+    // @return Award trigger
+    // @dev This function should return the trigger for the reward logic
+    // 1 - On submission
+    // 2 - On sponsor approval
+    function getAwardTrigger() external pure returns (int8);
 }
 
 struct FormSettings {
