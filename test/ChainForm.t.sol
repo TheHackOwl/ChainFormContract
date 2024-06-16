@@ -3,15 +3,24 @@ pragma solidity ^0.8.0;
 
 import {Test} from "forge-std/Test.sol";
 import {console} from "forge-std/Console.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
+import {MyToken} from "../src/MyToken.sol";
 import {ChainForm} from "../src/ChainForm.sol";
-import {IERC20, FormSettings, RewardRule, IRewardLogic} from "../src/FormDefinition.sol";
+import {FormSettings, RewardRule, IRewardLogic} from "../src/FormDefinition.sol";
 import {FixedReward} from "../src/Reward.sol";
 
 contract ChainFormTest is Test {
+    using SafeERC20 for IERC20;
+
     ChainForm private chainForm;
     FormSettings private formSettings;
     FormSettings private emptyFormSettings;
+    IERC20 private token;
+    address alice = vm.addr(1);
+    address bob = vm.addr(2);
+    address charlie = vm.addr(3);
 
     // Setup before testing
     function setUp() public {
@@ -23,7 +32,9 @@ contract ChainFormTest is Test {
         rewardSettings[0] = 10;
         rewardSettings[1] = 2;
         
-        IERC20 token = IERC20(address(0x371C7575c175258a2b450717c7214fe4A264E468));
+        token = IERC20(address(new MyToken(10000 ether)));
+        token.transfer(bob, 1000 ether);
+
         RewardRule memory formRules = RewardRule(rewardSettings, token);
         formSettings = FormSettings(formRules, fixedReward);
 
@@ -39,7 +50,7 @@ contract ChainFormTest is Test {
         questions[0] = "What is your name?";
         questions[1] = "How old are you?";
 
-        vm.startPrank(address(0x1)); // impersonate user address 0x1
+        vm.startPrank(alice); // impersonate user address 0x1
         chainForm.createForm("Survey", "A simple survey.", questions, emptyFormSettings);
         uint256[] memory forms = chainForm.getMyForms();
         assertEq(forms.length, 1);
@@ -51,7 +62,11 @@ contract ChainFormTest is Test {
         string[] memory questions = new string[](1);
         questions[0] = "Do you like programming?";
 
-        vm.startPrank(address(0x2));
+        vm.startPrank(bob);
+        // approve
+        token.safeIncreaseAllowance(address(chainForm), 1 ether);
+        assertTrue(token.allowance(bob, address(chainForm)) >= 1 ether);
+        
         chainForm.createForm("Tech Survey", "Tech related survey.", questions, formSettings);
         uint256 formId = chainForm.getMyForms()[0];
         
@@ -64,7 +79,7 @@ contract ChainFormTest is Test {
         string[] memory questions = new string[](1);
         questions[0] = "Do you like programming?";
 
-        vm.startPrank(address(0x2));
+        vm.startPrank(bob);
         chainForm.createForm("Tech Survey", "Tech related survey.", questions, emptyFormSettings);
         uint256 formId = chainForm.getMyForms()[0];
 
@@ -80,7 +95,7 @@ contract ChainFormTest is Test {
         string[] memory questions = new string[](1);
         questions[0] = "Do you like Solidity?";
 
-        vm.startPrank(address(0x3));
+        vm.startPrank(charlie);
         chainForm.createForm("Dev Survey", "Developer survey.", questions, emptyFormSettings);
         uint256 formId = chainForm.getMyForms()[0];
 
