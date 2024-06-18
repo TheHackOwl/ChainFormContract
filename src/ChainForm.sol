@@ -56,8 +56,8 @@ contract ChainForm is Owned {
 
     // @title Add reward logic
     // @param _rewardLogic Reward logic contract
-    function addRewardLogic(IRewardLogic _rewardLogic) external onlyOwner {
-        rewardLogics[_rewardLogic] = true;
+    function addRewardLogic(IRewardLogic _rewardLogic, bool allowed) external onlyOwner {
+        rewardLogics[_rewardLogic] = allowed;
     }
 
     // @title Get forms by creator
@@ -104,7 +104,9 @@ contract ChainForm is Owned {
                     revert("Failed to reward user.");
                 }
                 uint256 rewardAmount = abi.decode(data, (uint256));
-                emit RewardChanged(1, msg.sender, settings.rewardRule.token, _formId, rewardAmount, block.timestamp);
+                if (rewardAmount > 0) {
+                    emit RewardChanged(1, msg.sender, settings.rewardRule.token, _formId, rewardAmount, block.timestamp);
+                }
             }
         }
     }
