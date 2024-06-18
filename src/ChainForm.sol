@@ -2,21 +2,24 @@
 pragma solidity ^0.8.0;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 import {Form, Submission, RewardRule, FormSettings, IRewardLogic} from "./FormDefinition.sol";
 import {Owned} from "./Owned.sol";
 import {RevertReasonParser} from "./utils.sol";
 
 contract ChainForm is Owned {
-    mapping(uint256 => FormSettings) internal rewardSettings;
-    
+    mapping(uint256 => FormSettings) internal formSettings;
+    mapping(address => mapping(IERC20 => uint)) private tokenRewards; // Mapping from user address to token to reward amount
+
     Form[] private forms;
     mapping(uint256 => Submission[]) private submissions; // Mapping from form ID to submissions
     mapping(address => uint256[]) private userForms; // Mapping from user address to list of form IDs
     mapping(uint256 => mapping(address => bool)) private hasSubmitted; // Mapping to check if a user has submitted a form
     mapping(IRewardLogic => bool) private rewardLogics;
-    
 
+
+    using SafeERC20 for IERC20;
     using RevertReasonParser for bytes;
 
     constructor() Owned() {}
@@ -44,12 +47,12 @@ contract ChainForm is Owned {
     // @param _formId Form ID
     // @param _formSettings Form settings
     function setFormSettings(uint256 _formId, FormSettings memory _formSettings) private {
-        FormSettings memory formSettings = rewardSettings[_formId];
-        require(formSettings.rewardLogic == IRewardLogic(address(0)), "Form settings already set.");
+        FormSettings memory settings = formSettings[_formId];
+        require(settings.rewardLogic == IRewardLogic(address(0)), "Form settings already set.");
         require(_formSettings.rewardRule.token != IERC20(address(0)), "Invalid reward token.");
         _formSettings.rewardRule.token.balanceOf(msg.sender);
-        rewardSettings[_formId] = _formSettings;
-    } 
+        formSettings[_formId] = _formSettings;
+    }
 
     // @title Add reward logic
     // @param _rewardLogic Reward logic contract
@@ -71,6 +74,15 @@ contract ChainForm is Owned {
         return forms[_formId];
     }
 
+    // @title Reward changed event
+    // @param changeType Change type 1.reward 2.claim
+    // @param user User address
+    // @param token Reward token
+    // @param formId Form ID
+    // @param rewardAmount Reward amount
+    // @param timestamp Timestamp
+    event RewardChanged(uint8 indexed changeType, address indexed user, IERC20 token, uint256 formId, uint256 rewardAmount, uint256 timestamp);
+
     // @title Submit form responses
     // @param _formId Form ID
     // @param _dataHash IPFS data hash
@@ -81,15 +93,18 @@ contract ChainForm is Owned {
         submissionId = submissions[_formId].length;
         submissions[_formId].push(Submission(_dataHash, _cid, msg.sender, block.timestamp));
         hasSubmitted[_formId][msg.sender] = true;
+        FormSettings memory settings = formSettings[_formId];
 
         // Reward user
-        if (rewardSettings[_formId].rewardLogic != IRewardLogic(address(0))) {
-            IRewardLogic rewardLogic = rewardSettings[_formId].rewardLogic;
+        if (settings.rewardLogic != IRewardLogic(address(0))) {
+            IRewardLogic rewardLogic = settings.rewardLogic;
             if (rewardLogic.getAwardTrigger() == 1) {
-                (bool success, ) = address(rewardLogic).delegatecall(abi.encodeWithSignature("reward(address,uint256)", msg.sender, _formId));
+                (bool success, bytes memory data) = address(rewardLogic).delegatecall(abi.encodeWithSignature("reward(address,uint256)", msg.sender, _formId));
                 if (!success) {
                     revert("Failed to reward user.");
                 }
+                uint256 rewardAmount = abi.decode(data, (uint256));
+                emit RewardChanged(1, msg.sender, settings.rewardRule.token, _formId, rewardAmount, block.timestamp);
             }
         }
     }
@@ -131,5 +146,25 @@ contract ChainForm is Owned {
         }
 
         return result;
+    }
+
+    // @title Get rewards for user
+    // @param token Reward token
+    // @return Reward amount
+    function getRewards(IERC20 token) public view returns (uint256) {
+        return tokenRewards[msg.sender][token];
+    }
+
+    // @title Claim reward
+    // @param token Reward token
+    function claim(IERC20 token) external {
+        uint256 rewardAmount = tokenRewards[msg.sender][token];
+        require(rewardAmount > 0, "No rewards to claim.");
+
+        tokenRewards[msg.sender][token] = 0;
+        // transfer reward to user
+        token.safeIncreaseAllowance(address(this), rewardAmount);
+        token.safeTransferFrom(address(this), msg.sender, rewardAmount);
+        emit RewardChanged(2, msg.sender, token, 0, rewardAmount, block.timestamp);
     }
 }

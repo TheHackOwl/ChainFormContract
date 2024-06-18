@@ -68,9 +68,20 @@ contract ChainFormTest is Test {
         assertTrue(token.allowance(bob, address(chainForm)) >= 1 ether);
         
         chainForm.createForm("Tech Survey", "Tech related survey.", questions, formSettings);
-        uint256 formId = chainForm.getMyForms()[0];
+        assertEq(token.balanceOf(bob), 1000 ether - 20);
+        assertEq(token.balanceOf(address(chainForm)), 20);
         
+        uint256 formId = chainForm.getMyForms()[0];
+        vm.stopPrank();
+        vm.startPrank(alice);
         chainForm.submitForm(formId, "datahash", "cid");
+
+        uint256 amount = chainForm.getRewards(token);
+        assertEq(amount, 10);
+        
+        chainForm.claim(token);
+        assertEq(token.balanceOf(alice), 10);
+        assertEq(chainForm.getRewards(token), 0);
         vm.stopPrank();
     }
 

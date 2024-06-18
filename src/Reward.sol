@@ -6,19 +6,8 @@ import {IRewardLogic, FormSettings, RewardRule} from "./FormDefinition.sol";
 
 abstract contract RewardLogic is IRewardLogic{
     address private owner;
-    mapping(uint256 => FormSettings) internal rewardSettings;
+    mapping(uint256 => FormSettings) internal formSettings;
     mapping(address => mapping(IERC20 => uint)) internal tokenRewards;
-
-    function claim(address _user, IERC20 token) external {
-        uint256 rewardAmount = tokenRewards[msg.sender][token];
-        tokenRewards[msg.sender][token] = 0;
-        // transfer reward to user
-        token.transfer(_user, rewardAmount);
-    }
-
-    function getRewards(address _user, IERC20 token) external view returns (uint256) {
-        return tokenRewards[_user][token];
-    }
 }
 
 contract FixedReward is RewardLogic {
@@ -31,17 +20,17 @@ contract FixedReward is RewardLogic {
     }
 
     function addReward(uint256 formId) payable external{
-        RewardRule memory rule = rewardSettings[formId].rewardRule;
+        RewardRule memory rule = formSettings[formId].rewardRule;
         require(rule.intSettings.length > 0, "Invalid reward settings.");
 
         IERC20 token = rule.token;
         require(token != IERC20(address(0)), "Invalid reward token.");
-        
+
         int256 rewardAmount = rule.intSettings[0];
         int256 rewardNumber = rule.intSettings[1];
 
         RewardAccount storage rewardAccount = rewards[formId];
-        
+
         rewardAccount.remainingRewardNumber = uint256(rewardNumber);
 
         require(rewardAmount > 0, "Invalid reward amount.");
@@ -52,14 +41,14 @@ contract FixedReward is RewardLogic {
         token.safeTransferFrom(msg.sender, address(this), totalRewardAmount);
     }
 
-    function reward(address _user, uint256 formId) external override {
+    function reward(address _user, uint256 formId) external override returns(uint256 rewardAmount) {
         RewardAccount storage rewardAccount = rewards[formId];
         if (rewardAccount.remainingRewardNumber <= 0) {
-            return;
+            return 0;
         }
-        
-        RewardRule memory rule = rewardSettings[formId].rewardRule;
-        uint256 rewardAmount = uint(rule.intSettings[0]);
+
+        RewardRule memory rule = formSettings[formId].rewardRule;
+        rewardAmount = uint(rule.intSettings[0]);
         IERC20 token = rule.token;
 
         rewardAccount.remainingRewardNumber -= 1;

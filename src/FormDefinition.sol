@@ -25,17 +25,8 @@ interface IRewardLogic {
     // @title Reward user
     // @param _user User address
     // @param formId Form ID
-    function reward(address _user, uint256 formId) external;
-
-    // @title Claim reward
-    // @param _user User address
-    // @param token Token address
-    function claim(address _user, IERC20 token) external;
-
-    // @title Get rewards
-    // @param _user User address
-    // @param token Token address
-    function getRewards(address _user, IERC20 token) external view returns (uint256);
+    // @return rewardAmount Reward amount
+    function reward(address _user, uint256 formId) external returns(uint256 rewardAmount);
 
     // @title Get award trigger
     // @return Award trigger
