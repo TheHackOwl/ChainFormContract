@@ -76,7 +76,7 @@ contract LotteryReward is RewardLogic {
 
     function addReward(uint256 formId) payable external{
         RewardRule memory rule = formSettings[formId].rewardRule;
-        require(rule.intSettings.length > 2, "Invalid reward settings.");
+        require(rule.intSettings.length == 3, "Invalid reward settings.");
 
         IERC20 token = rule.token;
         require(token != IERC20(address(0)), "Invalid reward token.");

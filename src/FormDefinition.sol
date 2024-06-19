@@ -48,6 +48,7 @@ interface IRewardLogic {
 struct FormSettings {
     RewardRule rewardRule;
     IRewardLogic rewardLogic;
+    uint256 expireAt;
 }
 
 struct RewardRule {
