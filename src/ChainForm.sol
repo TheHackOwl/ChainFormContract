@@ -69,9 +69,37 @@ contract ChainForm is Owned {
     // @title Get form by ID
     // @param _formId Form ID
     // @return Form object
-    function getForm(uint256 _formId) public view returns (Form memory) {
+    function getForm(uint256 _formId) public view returns (Form memory, FormSettings memory) {
         require(_formId < forms.length, "Form does not exist.");
-        return forms[_formId];
+        return (forms[_formId], formSettings[_formId]);
+    }
+
+    // @title Get public forms by page
+    // @param _page Page number
+    // @param _perPage Number of forms per page
+    // @return Form array
+    // @dev order by id desc
+    function getFormsByPage(uint256 _page, uint256 _perPage) public view returns (Form[] memory result) {
+        require(_page > 0, "Page number should be greater than 0.");
+        require(_perPage > 0, "Per page should be greater than 0.");
+
+        uint256 start = (_page - 1) * _perPage;
+        uint256 end = start + _perPage;
+        if (end > forms.length) {
+            end = forms.length;
+        }
+
+        if (start >= end) {
+            return new Form[](0);
+        }
+
+        result = new Form[](end - start);
+        for (uint256 i = start; i < end; i++) {
+            if (i == forms.length) {
+                break;
+            }
+            result[i - start] = forms[forms.length - i - 1];
+        }
     }
 
     // @title Reward changed event
@@ -98,7 +126,7 @@ contract ChainForm is Owned {
         // Reward user
         if (settings.rewardLogic != IRewardLogic(address(0))) {
             IRewardLogic rewardLogic = settings.rewardLogic;
-            if (rewardLogic.getAwardTrigger() == 1) {
+            if (rewardLogic.getMetaData().trigger == 1) {
                 (bool success, bytes memory data) = address(rewardLogic).delegatecall(abi.encodeWithSignature("reward(address,uint256)", msg.sender, _formId));
                 if (!success) {
                     revert("Failed to reward user.");

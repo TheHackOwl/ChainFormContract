@@ -5,14 +5,16 @@ import {Test} from "forge-std/Test.sol";
 import {console} from "forge-std/Console.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/utils/Strings.sol";
 
 import {MyToken} from "../src/MyToken.sol";
 import {ChainForm} from "../src/ChainForm.sol";
-import {FormSettings, RewardRule, IRewardLogic} from "../src/FormDefinition.sol";
+import {FormSettings, RewardRule, IRewardLogic, Form} from "../src/FormDefinition.sol";
 import {FixedReward} from "../src/Reward.sol";
 
 contract ChainFormTest is Test {
     using SafeERC20 for IERC20;
+    using Strings for uint256;
 
     ChainForm private chainForm;
     FormSettings private formSettings;
@@ -26,7 +28,7 @@ contract ChainFormTest is Test {
     function setUp() public {
         chainForm = new ChainForm();
         FixedReward fixedReward = new FixedReward();
-        chainForm.addRewardLogic(fixedReward);
+        chainForm.addRewardLogic(fixedReward, true);
 
         int256[] memory rewardSettings = new int256[](2);
         rewardSettings[0] = 10;
@@ -115,5 +117,37 @@ contract ChainFormTest is Test {
         chainForm.submitForm(formId, dataHash, cid);
         chainForm.submitForm(formId, dataHash, cid); // This commit should fail
         vm.stopPrank();
+    }
+
+    function testGetFormsByPage() public {
+        string[] memory questions = new string[](1);
+        questions[0] = "Do you like Solidity?";
+        // Create 5 forms
+        for(uint i = 0; i < 5; i++) {
+            string memory title = string(abi.encodePacked("Form", i.toString()));
+            chainForm.createForm(title, "Description", questions, emptyFormSettings);
+        }
+
+        // Get the first page with 2 forms per page
+        Form[] memory forms = chainForm.getFormsByPage(1, 2);
+        assertEq(forms.length, 2);
+
+        assertEq(forms[0].name, "Form4");
+        assertEq(forms[1].name, "Form3");
+
+        // Get the second page with 2 forms per page
+        forms = chainForm.getFormsByPage(2, 2);
+        assertEq(forms.length, 2);
+        assertEq(forms[0].name, "Form2");
+        assertEq(forms[1].name, "Form1");
+
+        // Get the third page with 2 forms per page
+        forms = chainForm.getFormsByPage(3, 2);
+        assertEq(forms.length, 1);
+        assertEq(forms[0].name, "Form0");
+
+        // Get the fourth page with 2 forms per page
+        forms = chainForm.getFormsByPage(4, 2);
+        assertEq(forms.length, 0);
     }
 }

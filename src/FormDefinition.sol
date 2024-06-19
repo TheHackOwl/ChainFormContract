@@ -17,6 +17,15 @@ struct Form {
     string[] questions;
 }
 
+struct LogicMeta {
+    string name;
+    string description;
+    string version;
+    string[] argsDescription;
+    int8 argsNumber;
+    int8 trigger;
+}
+
 interface IRewardLogic {
     // @title Set reward for form
     // @param formId Form ID
@@ -28,12 +37,12 @@ interface IRewardLogic {
     // @return rewardAmount Reward amount
     function reward(address _user, uint256 formId) external returns(uint256 rewardAmount);
 
-    // @title Get award trigger
-    // @return Award trigger
+    // @title Get this reward logic meta data
+    // @return Reward logic meta data
     // @dev This function should return the trigger for the reward logic
     // 1 - On submission
     // 2 - On sponsor approval
-    function getAwardTrigger() external pure returns (int8);
+    function getMetaData() external pure returns (LogicMeta memory);
 }
 
 struct FormSettings {
