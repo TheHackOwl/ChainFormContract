@@ -11,6 +11,7 @@ import {MyToken} from "../src/MyToken.sol";
 import {ChainForm} from "../src/ChainForm.sol";
 import {FormSettings, RewardRule, IRewardLogic, Form} from "../src/FormDefinition.sol";
 import {FixedReward} from "../src/Reward.sol";
+import {Registry} from "../src/Registry.sol";
 
 contract ChainFormTest is Test {
     using SafeERC20 for IERC20;
@@ -26,9 +27,10 @@ contract ChainFormTest is Test {
 
     // Setup before testing
     function setUp() public {
-        chainForm = new ChainForm();
+        Registry registry = new Registry();
+        chainForm = new ChainForm(registry);
         FixedReward fixedReward = new FixedReward();
-        chainForm.addRewardLogic(fixedReward, true);
+        registry.addRewardContract(fixedReward);
 
         int256[] memory rewardSettings = new int256[](2);
         rewardSettings[0] = 10;

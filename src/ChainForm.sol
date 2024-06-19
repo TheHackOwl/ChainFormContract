@@ -7,6 +7,7 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {Form, Submission, RewardRule, FormSettings, IRewardLogic} from "./FormDefinition.sol";
 import {Owned} from "./Owned.sol";
 import {RevertReasonParser} from "./utils.sol";
+import {Registry} from "./Registry.sol";
 
 contract ChainForm is Owned {
     mapping(uint256 => FormSettings) internal formSettings;
@@ -16,13 +17,14 @@ contract ChainForm is Owned {
     mapping(uint256 => Submission[]) private submissions; // Mapping from form ID to submissions
     mapping(address => uint256[]) private userForms; // Mapping from user address to list of form IDs
     mapping(uint256 => mapping(address => bool)) private hasSubmitted; // Mapping to check if a user has submitted a form
-    mapping(IRewardLogic => bool) private allowedLogics;
-
+    Registry registry;
 
     using SafeERC20 for IERC20;
     using RevertReasonParser for bytes;
 
-    constructor() Owned() {}
+    constructor(Registry _registry) Owned() {
+        registry = _registry;
+    }
 
     // @title Create a new form
     function createForm(string memory _name, string memory _description, string[] memory _questions, FormSettings memory _formSettings) external payable returns (uint256 formId) {
@@ -39,7 +41,7 @@ contract ChainForm is Owned {
     // @param _formSettings Form settings
     function setFormSettings(uint256 _formId, FormSettings memory _formSettings) private {
         IRewardLogic rewardLogic = _formSettings.rewardLogic;
-        if (allowedLogics[rewardLogic]) {
+        if (registry.checkAllowedRewardContract(rewardLogic)) {
             formSettings[_formId] = _formSettings;
             require(_formSettings.rewardRule.token != IERC20(address(0)), "Invalid reward token.");
             (bool success, bytes memory retData) = address(rewardLogic).delegatecall(abi.encodeWithSignature("addReward(uint256)", _formId));
@@ -51,12 +53,6 @@ contract ChainForm is Owned {
         } else {
             formSettings[_formId] = _formSettings;
         }
-    }
-
-    // @title Add reward logic
-    // @param _rewardLogic Reward logic contract
-    function addRewardLogic(IRewardLogic _rewardLogic, bool allowed) external onlyOwner {
-        allowedLogics[_rewardLogic] = allowed;
     }
 
     // @title Get forms by creator
