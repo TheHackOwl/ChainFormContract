@@ -49,6 +49,8 @@ struct FormSettings {
     RewardRule rewardRule;
     IRewardLogic rewardLogic;
     uint256 expireAt;
+    bool isPublic;
+    bool isEncrypted;
 }
 
 struct RewardRule {

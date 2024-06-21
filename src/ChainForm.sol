@@ -26,6 +26,8 @@ contract ChainForm is Owned {
         registry = _registry;
     }
 
+    event FormCreated(uint256 indexed formId, address indexed creator, bool indexed isPublic,uint256 timestamp);
+
     // @title Create a new form
     function createForm(string memory _name, string memory _description, string[] memory _questions, FormSettings memory _formSettings) external payable returns (uint256 formId) {
         require(bytes(_name).length > 0, "Name should not be empty.");
@@ -34,6 +36,7 @@ contract ChainForm is Owned {
         forms.push(Form(msg.sender, block.timestamp, _name, _description, _questions));
         setFormSettings(formId, _formSettings);
         userForms[msg.sender].push(formId);
+        emit FormCreated(formId, msg.sender, _formSettings.isPublic, block.timestamp);
     }
 
     // @title Set form settings
