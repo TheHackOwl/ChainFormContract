@@ -11,7 +11,7 @@ import {Registry} from "./Registry.sol";
 
 contract ChainForm is Owned {
     mapping(uint256 => FormSettings) internal formSettings;
-    mapping(address => mapping(IERC20 => uint)) private tokenRewards; // Mapping from user address to token to reward amount
+    mapping(address => mapping(IERC20 => uint256)) private tokenRewards; // Mapping from user address to token to reward amount
 
     Form[] private forms;
     mapping(uint256 => Submission[]) private submissions; // Mapping from form ID to submissions
@@ -107,7 +107,7 @@ contract ChainForm is Owned {
     // @param formId Form ID
     // @param rewardAmount Reward amount
     // @param timestamp Timestamp
-    event RewardChanged(uint8 indexed changeType, address indexed user, IERC20 token, uint256 formId, uint256 rewardAmount, uint256 timestamp);
+    event RewardChanged(uint8 indexed changeType, address indexed user, IERC20 indexed token, uint256 formId, uint256 rewardAmount, uint256 timestamp);
 
     // @title Submit form responses
     // @param _formId Form ID

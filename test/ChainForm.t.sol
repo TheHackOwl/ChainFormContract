@@ -40,12 +40,12 @@ contract ChainFormTest is Test {
         token.transfer(bob, 1000 ether);
 
         RewardRule memory formRules = RewardRule(rewardSettings, token);
-        formSettings = FormSettings(formRules, fixedReward, 0);
+        formSettings = FormSettings(formRules, fixedReward, 0, true, "");
 
         int256[] memory emptyRewardSettings = new int256[](0);
         IERC20 emptyToken = IERC20(address(0x0));
         RewardRule memory emptyFormRules = RewardRule(emptyRewardSettings, emptyToken);
-        emptyFormSettings = FormSettings(emptyFormRules, IRewardLogic(address(0)), 0);
+        emptyFormSettings = FormSettings(emptyFormRules, IRewardLogic(address(0)), 0, true, "");
     }
 
     // test create form

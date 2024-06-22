@@ -7,7 +7,7 @@ import {IRewardLogic, FormSettings, RewardRule, LogicMeta} from "./FormDefinitio
 abstract contract RewardLogic is IRewardLogic{
     address private owner;
     mapping(uint256 => FormSettings) internal formSettings;
-    mapping(address => mapping(IERC20 => uint)) internal tokenRewards;
+    mapping(address => mapping(IERC20 => uint256)) internal tokenRewards;
 }
 
 contract FixedReward is RewardLogic {
